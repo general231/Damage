@@ -179,11 +179,11 @@ class Wounder(SuccessObject):
         self.myBaseAp = baseAp
         self.myExplodingWounds = []
         self.myExplodingWoundsIsModified = False
-        self.myRending = []
+        self.myRending = [] # idx 0 is the dice roll, idx 1 is the bonus
         self.myRendingIsModified = False
-        self.myExplodingDamage = []
+        self.myExplodingDamage = [] # idx 0 is the dice roll, idx 1 is the bonus
         self.myExplodingDamageIsModified = False
-        self.myMortalWounds = []
+        self.myMortalWounds = [] # idx 0 is the dice roll, idx 1 is the bonus
         self.myMortalWoundsIsModified = False
 
     def __generateDamageObject(self, type, bonusDamage=0, bonusAp=0):
@@ -238,6 +238,8 @@ class Saver():
         self.myArmourSave = armourSave
         self.myInvunerableSave = invunerableSave
         self.myDiceRoller = DiceRoller(6)
+        self.myHalveDamage = False
+        self.myReduceDamageBy1 = False
 
     def __call__(self, aDamageObject):
         diceRoll = self.myDiceRoller()
@@ -245,6 +247,10 @@ class Saver():
                                                                             and aDamageObject.myType != 'mortal':
             return True
         else:
+            if self.myHalveDamage:
+                aDamageObject.halveDamage()
+            if self.myReduceDamageBy1:
+                aDamageObject.reduceDamage(1)
             self.myModelObject.applyDamage(aDamageObject.myDamage)
             return False
 
