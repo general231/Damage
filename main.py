@@ -5,6 +5,37 @@ import numpy as np
 import sys
 import os.path
 
+NUM_ITERATIONS = 10000
+
+
+def createBolters():
+    return 1
+
+
+def createLascannons():
+    return 1
+
+
+def createAvengerGatlingCannon():
+    return 1
+
+
+def createLemanRussDefence():
+    return createTarget(3, 7, 7, 12), 8
+
+
+def createPrimarisMarine():
+    return createTarget(3, 7, 7, 2), 4
+
+
+def createCustodes():
+    return createTarget(2, 4, 7, 3), 5
+
+
+def createGuardsman():
+    return createTarget(4, 7, 7, 1), 3
+
+
 def createHitter(bs, rerolls='none', hitModifier=0, autoWoundModified=100, autoWoundUnmodified=100, autoHit=False,
                  mortalWound=None, mortalWoundIsModified=False, explodingHits=None, explodingHitsModified=False):
     if mortalWound is None:
@@ -42,14 +73,53 @@ def createTarget(armourSave, invunerableSave, fnp, wounds, halveDamage=False, re
     output.myReduceDamageBy1 = reduceDamageBy1
     return output
 
+
 def processOffense(offensiveList):
-    stats = [4, 5, 6]
+    stats = [0, 0, 0, 0]
+    # number of wounds to guardsman
+    [lemanRussTarget, lemanRussToughness] = createLemanRussDefence()
+    [custodesTarget, custodesToughness] = createCustodes()
+    [primarisTarget, primarisToughness] = createPrimarisMarine()
+    [guardTarget, guardToughness] = createGuardsman()
+    hitter = createHitter(offensiveList[1], rerolls=offensiveList[2], hitModifier=offensiveList[3],
+                          autoWoundModified=offensiveList[4], autoWoundUnmodified=offensiveList[5],
+                          autoHit=offensiveList[6], mortalWound=offensiveList[7], mortalWoundIsModified=offensiveList[8],
+                          explodingHits=offensiveList[9], explodingHitsModified=offensiveList[10])
+    strength = offensiveList[11]
+    wounder = createWounder(strength, lemanRussToughness, offensiveList[12], offensiveList[13],
+                            rerolls=offensiveList[14], woundModifier=offensiveList[15], rendDiceRoll=offensiveList[16],
+                            rendIsModified=offensiveList[17], rendBonus=offensiveList[18], mortalDiceRoll=offensiveList[19],
+                            mortalIsModified=offensiveList[20], mortalBonus=offensiveList[21])
+    systemObject = SystemObject(hitter, wounder, lemanRussTarget, offensiveList[0])
+    while i in range(0, NUM_ITERATIONS):
+        systemObject()
+    stats[0] = np.mean(systemObject.myLostModels)
+
+    wounder.mySuccessRoll = wounder.calculateSuccessRoll(strength, custodesToughness)
+    systemObject = SystemObject(hitter, wounder, custodesTarget, offensiveList[0])
+    while i in range(0, NUM_ITERATIONS):
+        systemObject()
+    stats[1] = np.mean(systemObject.myLostModels)
+
+    wounder.mySuccessRoll = wounder.calculateSuccessRoll(strength, primarisToughness)
+    systemObject = SystemObject(hitter, wounder, primarisTarget, offensiveList[0])
+    while i in range(0, NUM_ITERATIONS):
+        systemObject()
+    stats[2] = np.mean(systemObject.myLostModels)
+
+    wounder.mySuccessRoll = wounder.calculateSuccessRoll(strength, guardToughness)
+    systemObject = SystemObject(hitter, wounder, guardTarget, offensiveList[0])
+    while i in range(0, NUM_ITERATIONS):
+        systemObject()
+    stats[3] = np.mean(systemObject.myLostModels)
+
     return stats
 
 
 def processDefense(defensiveList):
     stats = [1, 2, 3]
     return stats
+
 
 def processProfile(rangeFileName, meleeFileName, defensiveFileName, outputFileName):
     output_file = open(outputFileName, "w+")

@@ -23,6 +23,7 @@ def diceToNum(value):
     else:
         return int(value)
 
+
 # This object represents a dice roll, it will return a random integer in the range 1-self.maxValue
 class DiceRoller:
     def __init__(self, maxValue):
@@ -35,6 +36,7 @@ class DiceRoller:
         for i in range(0, diceToRoll):
             dice_results.append(ceil(self.myMaxValue * rand.random()))
         return dice_results
+
 
 class DamageObject:
     def __init__(self, type, damage=1, ap=0):
@@ -49,7 +51,8 @@ class DamageObject:
         self.myDamage = tempDamage
 
     def halveDamage(self):
-        self.myDamage = ceil(self.myDamage/2)
+        self.myDamage = ceil(self.myDamage / 2)
+
 
 # This object stores the statistics about the model being attacked and makes the FNP rolls
 class ModelObject():
@@ -62,7 +65,7 @@ class ModelObject():
         self.myDiceRoller = DiceRoller(6)
 
     def applyDamage(self, damage):
-        for i in range(0,damage):
+        for i in range(0, damage):
             diceValue = self.myDiceRoller()
             if diceValue >= self.myFnp:
                 damage -= 1
@@ -77,6 +80,7 @@ class ModelObject():
         self.myLostModelsCounter = 0
         self.myRemainingWounds = self.myWoundCharacteristic
 
+
 # This is the parent class for the Hitter and the Wounder class, it contains the common code for exploding dice,
 # rerolls and dice rolls
 class SuccessObject:
@@ -87,21 +91,21 @@ class SuccessObject:
 
     def _doesItExplode(self, diceValue, diceRequirment, isModified, bonusValue):
         # This function is a generic function to be called when a bonus occurs on a specific value, e.g. exploding  6s
-       if isModified:
-           diceValue = diceValue - self.myDiceModifier
-       if diceValue >= diceRequirment:
-           return bonusValue
-       return 0
+        if isModified:
+            diceValue = diceValue - self.myDiceModifier
+        if diceValue >= diceRequirment:
+            return bonusValue
+        return 0
 
     def _applyReRoll(self, value):
         if self.myRerollType != 'none':
             # This is done so that you cant keep re rolling failed hits when the function calls itself
             tempDiceRoller = DiceRoller(6)
             newDiceRoll = tempDiceRoller()
-            if self.myRerollType == 'hits':
+            if self.myRerollType == 'all':
                 if newDiceRoll + self.myDiceModifier >= self.mySuccessRoll:
                     return newDiceRoll
-            if self.myRerollType == 'failedhits' and value < self.mySuccessRoll:
+            if self.myRerollType == 'failed' and value < self.mySuccessRoll:
                 if newDiceRoll >= self.mySuccessRoll:
                     return newDiceRoll
             if self.myRerollType == 'ones' and value == 1:
@@ -114,6 +118,7 @@ class SuccessObject:
             return True
         else:
             return False
+
 
 # This object rolls the hit roll, it takes in a dice value and will return the number of hits out, the output is a
 # list, the possible values are 'fail', 'success', 'mortal' or 'wound'
@@ -143,11 +148,11 @@ class Hitter(SuccessObject):
             output.append('wound')
             return output
         if len(self.myExplodingHits) != 0:
-            output += ['success']*self._doesItExplode(value, self.myExplodingHits[0],
+            output += ['success'] * self._doesItExplode(value, self.myExplodingHits[0],
                                                         self.myExplodingHitsIsModified, self.myExplodingHits[1])
         if len(self.myMortalWound) != 0:
-            output += ['mortal']*self._doesItExplode(value, self.myMortalWound[0],
-                                                        self.myExplodingHitsIsModified, self.myMortalWound[1])
+            output += ['mortal'] * self._doesItExplode(value, self.myMortalWound[0],
+                                                       self.myExplodingHitsIsModified, self.myMortalWound[1])
         if self._doISucceed(value):
             output.append('success')
         else:
@@ -158,10 +163,26 @@ class Hitter(SuccessObject):
                 output.append('fail')
         return output
 
+
 # This represnts the wound roll for the attack, it takes in the dice value and hit type and returns an array of
 # DamageObjects
 class Wounder(SuccessObject):
     def __init__(self, strength, toughness, baseDamage, baseAp):
+        super().__init__(self.calculateSuccessRoll(strength, toughness))
+        self.myStrength = strength
+        self.myToughness = toughness
+        self.myBaseDamage = baseDamage
+        self.myBaseAp = baseAp
+        self.myExplodingWounds = []
+        self.myExplodingWoundsIsModified = False
+        self.myRending = []  # idx 0 is the dice roll, idx 1 is the bonus
+        self.myRendingIsModified = False
+        self.myExplodingDamage = []  # idx 0 is the dice roll, idx 1 is the bonus
+        self.myExplodingDamageIsModified = False
+        self.myMortalWounds = []  # idx 0 is the dice roll, idx 1 is the bonus
+        self.myMortalWoundsIsModified = False
+
+    def calculateSuccessRoll(self, strength, toughness):
         if strength == toughness:
             successRoll = 4
         elif floor(strength / 2) >= toughness:
@@ -172,33 +193,21 @@ class Wounder(SuccessObject):
             successRoll = 6
         else:
             successRoll = 5
-        super().__init__(successRoll)
-        self.myStrength = strength
-        self.myToughness = toughness
-        self.myBaseDamage = baseDamage
-        self.myBaseAp = baseAp
-        self.myExplodingWounds = []
-        self.myExplodingWoundsIsModified = False
-        self.myRending = [] # idx 0 is the dice roll, idx 1 is the bonus
-        self.myRendingIsModified = False
-        self.myExplodingDamage = [] # idx 0 is the dice roll, idx 1 is the bonus
-        self.myExplodingDamageIsModified = False
-        self.myMortalWounds = [] # idx 0 is the dice roll, idx 1 is the bonus
-        self.myMortalWoundsIsModified = False
+        return successRoll
 
     def __generateDamageObject(self, type, bonusDamage=0, bonusAp=0):
         output = []
         if type == 'mortal':
-            output += [DamageObject('mortal')]*bonusDamage
+            output += [DamageObject('mortal')] * bonusDamage
         else:
             damage = diceToNum(self.myBaseDamage)
-            output.append(DamageObject(type, damage+bonusDamage, self.myBaseAp+bonusAp))
+            output.append(DamageObject(type, damage + bonusDamage, self.myBaseAp + bonusAp))
         return output
 
     def __call__(self, diceValue, hitType):
         output = []
         if hitType == 'mortal':
-            output += self.__generateDamageObject('mortal',1)
+            output += self.__generateDamageObject('mortal', 1)
             return output
         if hitType == 'wound':
             output += self.__generateDamageObject('normal')
@@ -212,17 +221,18 @@ class Wounder(SuccessObject):
                 return output
         if len(self.myExplodingDamage) != 0:
             bonusDamage = diceToNum(self._doesItExplode(diceValue, self.myExplodingDamage[0],
-                                                       self.myExplodingDamageIsModified, self.myExplodingDamage[1]))
+                                                        self.myExplodingDamageIsModified, self.myExplodingDamage[1]))
             if bonusDamage != 0:
                 output += self.__generateDamageObject('normal', bonusDamage)
                 return output
         if len(self.myMortalWounds) != 0:
             numMortalWounds = diceToNum(self._doesItExplode(diceValue, self.myMortalWounds[0],
-                                                       self.myMortalWoundsIsModified, self.myMortalWounds[1]))
+                                                            self.myMortalWoundsIsModified, self.myMortalWounds[1]))
             output += self.__generateDamageObject('mortal', numMortalWounds)
         if len(self.myExplodingWounds) != 0:
-            output +=  self.__generateDamageObject('normal') * self._doesItExplode(diceValue, self.myExplodingWounds[0],
-                                                        self.myExplodingWoundsIsModified, self.myExplodingWounds[1])
+            output += self.__generateDamageObject('normal') * self._doesItExplode(diceValue, self.myExplodingWounds[0],
+                                                                                  self.myExplodingWoundsIsModified,
+                                                                                  self.myExplodingWounds[1])
         if self._doISucceed(diceValue):
             output += self.__generateDamageObject('normal')
         else:
@@ -231,20 +241,22 @@ class Wounder(SuccessObject):
                 output += self.__call__(newDice)
         return output
 
+
 # This object makes the saving roll, it takes in a damage object, and it returns true if successful
 class Saver():
-    def __init__(self, armourSave, invunerableSave, fnp, wounds):
+    def __init__(self, armourSave, invulnerableSave, fnp, wounds):
         self.myModelObject = ModelObject(wounds, fnp)
         self.myArmourSave = armourSave
-        self.myInvunerableSave = invunerableSave
+        self.myInvulnerableSave = invulnerableSave
         self.myDiceRoller = DiceRoller(6)
         self.myHalveDamage = False
         self.myReduceDamageBy1 = False
 
     def __call__(self, aDamageObject):
         diceRoll = self.myDiceRoller()
-        if (diceRoll >= (self.myArmourSave + aDamageObject.myAp) or diceRoll >= self.myInvunerableSave) and diceRoll != 1\
-                                                                            and aDamageObject.myType != 'mortal':
+        if (diceRoll >= (
+                self.myArmourSave + aDamageObject.myAp) or diceRoll >= self.myInvulnerableSave) and diceRoll != 1 \
+                and aDamageObject.myType != 'mortal':
             return True
         else:
             if self.myHalveDamage:
@@ -253,6 +265,7 @@ class Saver():
                 aDamageObject.reduceDamage(1)
             self.myModelObject.applyDamage(aDamageObject.myDamage)
             return False
+
 
 class SystemObject:
     def __init__(self, aHitter, aWounder, aSaver, numShots):
@@ -266,7 +279,7 @@ class SystemObject:
         self.myTotalNumberShots = 0
         self.myRunningWounds = []
         self.mySaves = 0
-        self.myRecievedDamage = []
+        self.myReceivedDamage = []
         self.myLostModels = []
 
     def __call__(self):
@@ -285,15 +298,16 @@ class SystemObject:
             if self.mySaver(j):
                 self.mySaves += 1
         self.myLostModels.append(self.mySaver.myModelObject.myLostModelsCounter)
-        self.myRecievedDamage.append(self.mySaver.myModelObject.myTotalDamageRecieved)
+        self.myReceivedDamage.append(self.mySaver.myModelObject.myTotalDamageRecieved)
         self.mySaver.myModelObject.reset()
 
     def finalise(self):
-        hitSuccessRate = 100 * sum(self.myRunningHitSuccess) / (self.myTotalNumberShots)
+        hitSuccessRate = 100 * sum(self.myRunningHitSuccess) / self.myTotalNumberShots
         print(
             "hits: " + str(sum(self.myRunningHitSuccess)) + " success rate:" + str(hitSuccessRate))
         woundSuccessRate = 100 * sum(self.myRunningWounds) / (sum(self.myRunningHitSuccess))
         print("wounds: " + str(sum(self.myRunningWounds)) + " success rate:" + str(woundSuccessRate))
         saveSuccessRate = 100 * self.mySaves / sum(self.myRunningWounds)
         print("saves: " + str(self.mySaves) + " success rate:" + str(saveSuccessRate))
-        print("Damage recieved: " + str(sum(self.myRecievedDamage)/len(self.myRecievedDamage)) + " lost models: " + str(sum(self.myLostModels)/len(self.myLostModels)))
+        print("Damage received: " + str(sum(self.myReceivedDamage) / len(self.myReceivedDamage)) + " lost models: "
+              + str(sum(self.myLostModels) / len(self.myLostModels)))
