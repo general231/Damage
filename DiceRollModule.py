@@ -1,6 +1,7 @@
 import random as rand
 from math import ceil
 from math import floor
+import re
 
 
 # not working:
@@ -10,18 +11,34 @@ from math import floor
 def diceToNum(value):
     # This converts dice rolls D6, 3D6 etc and gives a integer number out
     value = str(value)
-    if 'D' in value:
-        if len(value) == 2:
-            tempDiceRoller = DiceRoller(int(value[1]))
-            return tempDiceRoller()
-        else:
-            temp = 0
-            tempDiceRoller = DiceRoller(int(value[2]))
-            for i in range(0, int(value[0])):
-                temp += tempDiceRoller
-            return temp
+    diceSize = re.findall(r"D(\d+)", value)
+    numDice = re.findall(r"(\d+)D", value)
+    bonus = re.findall(r"\+(\d+)", value)
+    # TODO option for best of 2D6, reroll dice, etc
+    if diceSize == []:
+        diceSize = 6
     else:
+        diceSize = int(diceSize[0])
+    if numDice == []:
+        numDice = 1
+    else:
+        numDice = int(numDice[0])
+    if bonus == []:
+        bonus = 0
+    else:
+        bonus = int(bonus[0])
+
+    # test for integer input value
+    if (value.isdigit()):
         return int(value)
+
+    tempDiceRoller = DiceRoller(int(diceSize))
+    totalValue = 0
+    for i in range(0, numDice):
+        totalValue += tempDiceRoller()
+
+    totalValue += bonus
+    return bonus
 
 
 # This object represents a dice roll, it will return a random integer in the range 1-self.maxValue
@@ -201,7 +218,8 @@ class Wounder(SuccessObject):
             output += [DamageObject('mortal')] * bonusDamage
         else:
             damage = diceToNum(self.myBaseDamage)
-            output.append(DamageObject(type, damage + bonusDamage, self.myBaseAp + bonusAp))
+            damageObject = DamageObject(type, damage + bonusDamage, self.myBaseAp + bonusAp)
+            output.append(damageObject)
         return output
 
     def __call__(self, diceValue, hitType):
@@ -300,6 +318,7 @@ class SystemObject:
         self.myLostModels.append(self.mySaver.myModelObject.myLostModelsCounter)
         self.myReceivedDamage.append(self.mySaver.myModelObject.myTotalDamageRecieved)
         self.mySaver.myModelObject.reset()
+        print(hits)
 
     def finalise(self):
         hitSuccessRate = 100 * sum(self.myRunningHitSuccess) / self.myTotalNumberShots
