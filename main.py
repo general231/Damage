@@ -4,6 +4,7 @@ from DiceRollModule import Hitter, Wounder, Saver, SystemObject
 import numpy as np
 import sys
 import os.path
+import re
 
 NUM_ITERATIONS = 10000
 
@@ -45,6 +46,10 @@ def createCustodes():
 
 def createGuardsman():
     return createTarget(4, 7, 7, 1), 3
+
+def inputToBool(input):
+    test = re.findall(r'[y|yes|1|True|true]', str(input))
+    return len(test) != 0
 
 
 def createHitter(bs, rerolls='none', hitModifier=0, autoWoundModified=100, autoWoundUnmodified=100, autoHit=False,
@@ -92,17 +97,17 @@ def processOffense(offensiveList):
     [custodesTarget, custodesToughness] = createCustodes()
     [primarisTarget, primarisToughness] = createPrimarisMarine()
     [guardTarget, guardToughness] = createGuardsman()
-    hitter = createHitter(offensiveList[1], rerolls=offensiveList[2], hitModifier=offensiveList[3],
-                          autoWoundModified=offensiveList[4], autoWoundUnmodified=offensiveList[5],
-                          autoHit=offensiveList[6], mortalWound=offensiveList[7],
-                          mortalWoundIsModified=offensiveList[8],
-                          explodingHits=offensiveList[9], explodingHitsModified=offensiveList[10])
-    strength = offensiveList[11]
-    wounder = createWounder(strength, lemanRussToughness, offensiveList[12], offensiveList[13],
-                            rerolls=offensiveList[14], woundModifier=offensiveList[15], rendDiceRoll=offensiveList[16],
-                            rendIsModified=offensiveList[17], rendBonus=offensiveList[18],
+    hitter = createHitter(offensiveList[1], rerolls=offensiveList[6], hitModifier=offensiveList[5],
+                          autoWoundModified=offensiveList[10], autoWoundUnmodified=offensiveList[11],
+                          autoHit=inputToBool(offensiveList[9]), mortalWound=offensiveList[13],
+                          mortalWoundIsModified=inputToBool(offensiveList[14]),
+                          explodingHits=offensiveList[12], explodingHitsModified=inputToBool(offensiveList[13]))
+    strength = offensiveList[2]
+    wounder = createWounder(strength, lemanRussToughness, offensiveList[3], offensiveList[4],
+                            rerolls=offensiveList[8], woundModifier=offensiveList[7], rendDiceRoll=offensiveList[19],
+                            rendIsModified=inputToBool(offensiveList[20]), rendBonus=offensiveList[21],
                             mortalDiceRoll=offensiveList[19],
-                            mortalIsModified=offensiveList[20], mortalBonus=offensiveList[21])
+                            mortalIsModified=inputToBool(offensiveList[20]), mortalBonus=offensiveList[21])
     systemObject = SystemObject(hitter, wounder, lemanRussTarget, offensiveList[0])
     print("Processing Leman Russ")
     for i in range(0, NUM_ITERATIONS):
@@ -141,7 +146,7 @@ def processDefense(defensiveList):
     wounder.myDiceModifier = defensiveList[6]
     hitter.myDiceModifier = defensiveList[5]
     target = createTarget(defensiveList[1], defensiveList[2], defensiveList[3], defensiveList[4],
-                          halveDamage=defensiveList[8], reduceDamageBy1=defensiveList[7])
+                          halveDamage=inputToBool(defensiveList[8]), reduceDamageBy1=inputToBool(defensiveList[7]))
     systemObject = SystemObject(hitter, wounder, target, numShots)
     print("Processing Bolters")
     for i in range(0, NUM_ITERATIONS):
@@ -198,7 +203,7 @@ def processProfile(rangeFileName, meleeFileName, defensiveFileName, outputFileNa
     print("Processing Ranged Profile")
     line = range_file.readline()
     while line:
-        line_list = line.split(',')
+        line_list = re.split(r'[,]', line)
         for i in range(len(line_list)):
             if line_list[i].isdigit():
                 line_list[i] = int(line_list[i])

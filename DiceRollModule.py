@@ -318,7 +318,6 @@ class SystemObject:
         self.myLostModels.append(self.mySaver.myModelObject.myLostModelsCounter)
         self.myReceivedDamage.append(self.mySaver.myModelObject.myTotalDamageRecieved)
         self.mySaver.myModelObject.reset()
-        print(hits)
 
     def finalise(self):
         hitSuccessRate = 100 * sum(self.myRunningHitSuccess) / self.myTotalNumberShots
