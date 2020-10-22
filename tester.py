@@ -207,17 +207,17 @@ expectedOutput = [False, False, False, False, True, True]
 saverTest(testSaver, testDamageObject, diceRolls, expectedOutput, "invunerable save test")
 
 #test mortal wounds ignore everything
-testSaver = Saver(3,5,100,2)
+testSaver = Saver(3, 5, 100, 2)
 testDamageObject = DamageObject('mortal', 1, 0)
 testSaver.myDiceRoller = DummyDiceRoller(3)
-diceRolls = [1,2,3,4,5,6]
+diceRolls = [1, 2, 3, 4, 5, 6]
 expectedOutput = [False, False, False, False, False, False]
 saverTest(testSaver, testDamageObject, diceRolls, expectedOutput, "mortal wound saver test")
 
 #test models die
 testName = "model death count test"
 print(testName)
-testSaver = Saver(3,5,100,2)
+testSaver = Saver(3, 5, 100, 2)
 testDamageObject = DamageObject('normal', 1, 0)
 testSaver.myDiceRoller = DummyDiceRoller(2)
 testSaver(testDamageObject)

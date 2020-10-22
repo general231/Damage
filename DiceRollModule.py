@@ -107,7 +107,7 @@ class SuccessObject:
         self.myRerollType = 'none'
 
     def _doesItExplode(self, diceValue, diceRequirment, isModified, bonusValue):
-        # This function is a generic function to be called when a bonus occurs on a specific value, e.g. exploding  6s
+        # This function is a generic function to be called when a bonus occurs on a specific value, e.g. exploding 6s
         if isModified:
             diceValue = diceValue - self.myDiceModifier
         if diceValue >= diceRequirment:
@@ -148,9 +148,9 @@ class Hitter(SuccessObject):
         self.myAutoSuccess = False
         self.myAutoWound = 100
         self.myAutoWoundIsModified = False
-        self.myMortalWound = []
+        self.myMortalWound = [] # idx 0 is the dice roll, idx 1 is the bonus
         self.myMortalWoundIsModified = False
-        self.myExplodingHits = []
+        self.myExplodingHits = [] # idx 0 is the dice roll, idx 1 is the bonus
         self.myExplodingHitsIsModified = False
 
     def __call__(self, value):
