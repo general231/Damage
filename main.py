@@ -6,8 +6,10 @@ import sys
 import os.path
 import re
 import json
+import time
 
 NUM_ITERATIONS = 10000
+
 
 # 10 tactical marines with bolters in rapidfire range
 def createBolters():
@@ -15,11 +17,13 @@ def createBolters():
     aWounder = createWounder(4, 4, 0, 1)
     return aHitter, aWounder, 20
 
+
 # 10 tactical marines with lascannons
 def createLascannons():
     aHitter = createHitter(3)
     aWounder = createWounder(9, 4, 4, "D6")
     return aHitter, aWounder, 10
+
 
 # 3 broadsides with high yield  missile pods
 def createBroadsideHighYieldMissilePods():
@@ -27,32 +31,46 @@ def createBroadsideHighYieldMissilePods():
     aWounder = createWounder(7, 4, 1, "D3")
     return aHitter, aWounder, 24
 
+
 # 10 snipers
 def createScoutSniper():
     aHitter = createHitter(3)
     aWounder = createWounder(4, 4, 1, 1, mortalRoll=[6, 1], mortalIsModified=False)
     return aHitter, aWounder, 10
 
+# create a lemanRuss
 def createLemanRussDefence():
     return createTarget(3, 7, 7, 12), 8
 
 
+# create a bog standard primaris marine
 def createPrimarisMarine():
     return createTarget(3, 7, 7, 2), 4
 
 
+# create a custodes, the emperors shiniest
 def createCustodes():
     return createTarget(2, 4, 7, 3), 5
 
 
+# create a guardsman
 def createGuardsman():
     return createTarget(4, 7, 7, 1), 3
 
+# this converts any of the various ways of saying true or false to a python bool
 def inputToBool(input):
     test = re.findall(r'[y|yes|1|True|true]', str(input))
     return len(test) != 0
 
 
+# sums values in the dictionary, this assumes every key in dict1 is also in dict2
+def addNumericalDictionaries(dict1, dict2):
+    for key, value in dict1.items():
+        dict2[key] = dict2[key] + dict1[key]
+    return dict2
+
+
+# a simpe factory for building a hitter object
 def createHitter(bs, rerolls='none', hitModifier=0, autoWoundRoll=100, autoWoundIsModified=False, autoHit=False,
                  mortalWound=None, mortalWoundIsModified=False, explodingHits=None, explodingHitsModified=False):
     if mortalWound is None:
@@ -72,6 +90,8 @@ def createHitter(bs, rerolls='none', hitModifier=0, autoWoundRoll=100, autoWound
     return output
 
 
+# a simple factory for creating a wounder, rendRoll and mortalWound needs to be in the format the wounder wants because
+# I didnt want to add 2 extra arguments and a check for both
 def createWounder(strength, toughness, baseAp, baseDamage, rerolls='none', woundModifier=0, rendRoll=[],
                   rendIsModified=False, mortalRoll=[], mortalIsModified=False):
     output = Wounder(strength, toughness, baseDamage, baseAp)
@@ -84,6 +104,7 @@ def createWounder(strength, toughness, baseAp, baseDamage, rerolls='none', wound
     return output
 
 
+# a simple factory for creating a target object
 def createTarget(armourSave, invunerableSave, fnp, wounds, halveDamage=False, reduceDamageBy1=False):
     output = Saver(armourSave, invunerableSave, fnp, wounds)
     output.myHalveDamage = halveDamage
@@ -91,8 +112,9 @@ def createTarget(armourSave, invunerableSave, fnp, wounds, halveDamage=False, re
     return output
 
 
+# this
 def processOffense(offensiveDict):
-    stats = [0, 0, 0, 0]
+    stats = {"lemanRuss": 0, "custodes": 0, "primarisMarine": 0, "imperialGuard": 0}
     # number of wounds to guardsman
     [lemanRussTarget, lemanRussToughness] = createLemanRussDefence()
     [custodesTarget, custodesToughness] = createCustodes()
@@ -100,11 +122,13 @@ def processOffense(offensiveDict):
     [guardTarget, guardToughness] = createGuardsman()
     mortalWoundForHitter = [offensiveDict["mortalWoundToHitRoll"], offensiveDict["mortalWoundToHitBonus"]]
     explodingHitsForHitter = [offensiveDict["extraHitsRoll"], offensiveDict["extraHitsBonus"]]
-    hitter = createHitter(offensiveDict["numAttacks"], rerolls=offensiveDict["hitReroll"],
-                          hitModifier=offensiveDict["hitModifier"], autoWoundRoll=offensiveDict["hitModifier"],
-                          autoWoundIsModified=offensiveDict["hitModifier"], autoHit=offensiveDict["autoSuccess"],
-                          mortalWound=mortalWoundForHitter, mortalWoundIsModified=offensiveDict["mortalWoundToHitRollIsModified"],
-                          explodingHits=explodingHitsForHitter, explodingHitsModified=offensiveDict["extraHitsIsModified"])
+    hitter = createHitter(offensiveDict["hitRoll"], rerolls=offensiveDict["hitReroll"],
+                          hitModifier=offensiveDict["hitModifier"], autoWoundRoll=offensiveDict["autoWoundRoll"],
+                          autoWoundIsModified=offensiveDict["autoWoundIsModified"], autoHit=offensiveDict["autoSuccess"],
+                          mortalWound=mortalWoundForHitter,
+                          mortalWoundIsModified=offensiveDict["mortalWoundToHitRollIsModified"],
+                          explodingHits=explodingHitsForHitter,
+                          explodingHitsModified=offensiveDict["extraHitsIsModified"])
     strength = offensiveDict["strength"]
     mortalWoundsForWounder = [offensiveDict["mortalWoundToWoundRoll"], offensiveDict["mortalWoundsToWoundBonus"]]
     explodingDamage = [offensiveDict["explodingDamageRoll"], offensiveDict["explodingDamageBonus"]]
@@ -117,37 +141,38 @@ def processOffense(offensiveDict):
     print("Processing Leman Russ")
     for i in range(0, NUM_ITERATIONS):
         systemObject()
-    stats[0] = np.mean(systemObject.myLostModels)
+    stats["lemanRuss"] = np.mean(systemObject.myLostModels)
 
     wounder.mySuccessRoll = wounder.calculateSuccessRoll(strength, custodesToughness)
     systemObject = SystemObject(hitter, wounder, custodesTarget, offensiveDict["numAttacks"])
     print("Processing Custodes")
     for i in range(0, NUM_ITERATIONS):
         systemObject()
-    stats[1] = np.mean(systemObject.myLostModels)
+    stats["custodes"] = np.mean(systemObject.myLostModels)
 
     wounder.mySuccessRoll = wounder.calculateSuccessRoll(strength, primarisToughness)
     systemObject = SystemObject(hitter, wounder, primarisTarget, offensiveDict["numAttacks"])
     print("Processing Primaris Marine")
     for i in range(0, NUM_ITERATIONS):
         systemObject()
-    stats[2] = np.mean(systemObject.myLostModels)
+    stats["primarisMarine"] = np.mean(systemObject.myLostModels)
 
     wounder.mySuccessRoll = wounder.calculateSuccessRoll(strength, guardToughness)
     systemObject = SystemObject(hitter, wounder, guardTarget, offensiveDict["numAttacks"])
     print("Processing Guardsman")
     for i in range(0, NUM_ITERATIONS):
         systemObject()
-    stats[3] = np.mean(systemObject.myLostModels)
+    stats["imperialGuard"] = np.mean(systemObject.myLostModels)
 
     return stats
 
 
 def processDefense(defensiveDict):
-    stats = [1, 2, 3, 4]
+    stats = {"bolters": 0, "lascannons": 0, "highYieldMissilePod": 0, "sniper": 0}
 
     hitter, wounder, numShots = createBolters()
-    target = createTarget(defensiveDict["armourSave"], defensiveDict["invulnerableSave"], defensiveDict["fnp"], defensiveDict["woundCharacteristic"],
+    target = createTarget(defensiveDict["armourSave"], defensiveDict["invulnerableSave"], defensiveDict["fnp"],
+                          defensiveDict["woundCharacteristic"],
                           halveDamage=defensiveDict["halveDamage"], reduceDamageBy1=defensiveDict["reduceDamageByOne"])
     wounder.calculateSuccessRoll(wounder.myStrength, defensiveDict["toughness"])
     wounder.myDiceModifier -= defensiveDict["woundModifier"]
@@ -157,7 +182,7 @@ def processDefense(defensiveDict):
     print("Processing Bolters")
     for i in range(0, NUM_ITERATIONS):
         systemObject()
-    stats[0] = np.mean(systemObject.myLostModels)
+    stats["bolters"] = np.mean(systemObject.myLostModels)
 
     hitter, wounder, numShots = createLascannons()
     wounder.calculateSuccessRoll(wounder.myStrength, defensiveDict["toughness"])
@@ -168,7 +193,7 @@ def processDefense(defensiveDict):
     print("Processing Lascannons")
     for i in range(0, NUM_ITERATIONS):
         systemObject()
-    stats[1] = np.mean(systemObject.myLostModels)
+    stats["lascannons"] = np.mean(systemObject.myLostModels)
 
     hitter, wounder, numShots = createBroadsideHighYieldMissilePods()
     wounder.calculateSuccessRoll(wounder.myStrength, defensiveDict["toughness"])
@@ -179,7 +204,7 @@ def processDefense(defensiveDict):
     print("Processing High Yield Missile Pods")
     for i in range(0, NUM_ITERATIONS):
         systemObject()
-    stats[2] = np.mean(systemObject.myLostModels)
+    stats["highYieldMissilePod"] = np.mean(systemObject.myLostModels)
 
     hitter, wounder, numShots = createScoutSniper()
     wounder.calculateSuccessRoll(wounder.myStrength, defensiveDict["toughness"])
@@ -190,43 +215,62 @@ def processDefense(defensiveDict):
     print("Processing Snipers")
     for i in range(0, NUM_ITERATIONS):
         systemObject()
-    stats[3] = np.mean(systemObject.myLostModels)
+    stats["sniper"] = np.mean(systemObject.myLostModels)
 
     return stats
 
 
+class DummyFile:
+    def readline(self):
+        return []
+    def close(self):
+        pass
+
+
 def processProfile(rangeFileName, meleeFileName, defensiveFileName, outputFileName):
-    range_file = open(rangeFileName, "r")
-    melee_file = open(meleeFileName, "r")
-    defense_file = open(defensiveFileName, "r")
+    range_file = DummyFile()
+    try:
+        range_file = open(rangeFileName, "r")
+    except IOError:
+        print("Unable to open ranged weapon file, assuming no ranged weapon")
+    try:
+        melee_file = open(meleeFileName, "r")
+    except Exception as e:
+        print("Unable to open melee file")
+        raise
+    try:
+        defense_file = open(defensiveFileName, "r")
+    except exception as e:
+        print("Unable to open defense file")
+        raise
     output_file = open(outputFileName, "w+")
-    rangeOutput = [0, 0, 0, 0]
-    meleeOutput = [0, 0, 0, 0]
-    defenseOutput = [0, 0, 0, 0]
+    rangeOutput = {"lemanRuss": 0, "custodes": 0, "primarisMarine": 0, "imperialGuard": 0}
+    meleeOutput = {"lemanRuss": 0, "custodes": 0, "primarisMarine": 0, "imperialGuard": 0}
+    defenseOutput = {"bolters": 0, "lascannons": 0, "highYieldMissilePod": 0, "sniper": 0}
     print("Processing Ranged Profile")
     line = range_file.readline()
     while line:
         line_dict = json.loads(line)
-        rangeOutput = np.add(processOffense(line_dict), rangeOutput)
+        rangeOutput = addNumericalDictionaries(processOffense(line_dict), rangeOutput)
         line = range_file.readline()
 
     print("Processing Melee Profile")
     line = melee_file.readline()
     while line:
         line_dict = json.loads(line)
-        meleeOutput = np.add(processOffense(line_dict), meleeOutput)
+        meleeOutput = addNumericalDictionaries(processOffense(line_dict), meleeOutput)
         line = melee_file.readline()
 
     print("Processing Defensive Profile")
     line = defense_file.readline()
     while line:
         line_dict = json.loads(line)
-        defenseOutput = np.add(processDefense(line_dict), defenseOutput)
+        defenseOutput = addNumericalDictionaries(processDefense(line_dict), defenseOutput)
         line = melee_file.readline()
 
-    output_file.write(np.array2string(rangeOutput, separator=',') + "\n")
-    output_file.write(np.array2string(meleeOutput, separator=',') + "\n")
-    output_file.write(np.array2string(defenseOutput, separator=',') + "\n")
+    output_file.write(json.dumps(rangeOutput) + "\n")
+    output_file.write(json.dumps(meleeOutput) + "\n")
+    output_file.write(json.dumps(defenseOutput) + "\n")
     output_file.close()
     range_file.close()
     melee_file.close()
@@ -253,7 +297,7 @@ defensiveFileNames = []
 outputFileNames = []
 fileCounter = 0
 while line:
-    line = line[:-1]
+    line = line.replace("\n", "")
     rangeFileNames.append(line + "_ranged.csv")
     meleeFileNames.append(line + "_melee.csv")
     defensiveFileNames.append(line + "_defense.csv")
@@ -261,6 +305,17 @@ while line:
     fileCounter += 1
     line = file.readline()
 
+startTime = time.perf_counter()
 for i in range(0, fileCounter):
-    processProfile(rangeFileNames[i], meleeFileNames[i], defensiveFileNames[i], outputFileNames[i])
-    print("Processed data-set ", outputFileNames[i].split("_")[0])
+    try:
+        startTime2 = time.perf_counter()
+        processProfile(rangeFileNames[i], meleeFileNames[i], defensiveFileNames[i], outputFileNames[i])
+        stopTime2 =  time.perf_counter()
+        print("Processed data-set ", outputFileNames[i].split("_")[0], ", it took ", stopTime2 - startTime2)
+
+    except IOError:
+        print("Unable to process ", outputFileNames[i].split("_")[0], ", skipping this datasheet")
+stopTime = time.perf_counter()
+
+print("total time to process: ", stopTime-startTime)
+

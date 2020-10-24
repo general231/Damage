@@ -38,7 +38,7 @@ def diceToNum(value):
         totalValue += tempDiceRoller()
 
     totalValue += bonus
-    return bonus
+    return totalValue
 
 
 # This object represents a dice roll, it will return a random integer in the range 1-self.maxValue
@@ -307,7 +307,8 @@ class SystemObject:
         hits = []
         wounds = []
         for j in diceValue:
-            hits += self.myHitter(j)
+            a = self.myHitter(j)
+            hits += a
         self.myRunningHitSuccess.append(hits.count('success'))
         for j in hits:
             wounds += self.myWounder(self.myDiceRoller(), j)
