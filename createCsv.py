@@ -113,15 +113,18 @@ def createDefensiveProfile(name):
     woundModifier = 0
     reduceDamageByOne = False
     halveDamage = False
+    transHuman = False
     if not testForBooleanString(input("Is this a vanilla profile? ")):
         hitModifier = testForIntegerString(input("Please enter the hit modifier "))
         woundModifier = testForIntegerString(input("Please enter the wound modifier "))
         reduceDamageByOne = testForBooleanString(input("Does the unit reduce damage by 1 "))
         halveDamage = testForBooleanString(input("Does the unit halve damage "))
+        transHuman = testForBooleanString(input("Does the unit have a transhuman effect? "))
 
     toWrite_dict = {"toughness": toughness, "armourSave": armourSave, "invulnerableSave": invulnerableSave, "fnp": fnp,
                     "woundCharacteristic": woundCharacteristic, "hitModifier": hitModifier,
-                    "woundModifier": woundModifier, "reduceDamageByOne": reduceDamageByOne, "halveDamage": halveDamage}
+                    "woundModifier": woundModifier, "reduceDamageByOne": reduceDamageByOne, "halveDamage": halveDamage,
+                    "transHuman": transHuman}
 
     toWrite_json = json.dumps(toWrite_dict)
 

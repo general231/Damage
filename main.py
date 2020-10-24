@@ -38,6 +38,7 @@ def createScoutSniper():
     aWounder = createWounder(4, 4, 1, 1, mortalRoll=[6, 1], mortalIsModified=False)
     return aHitter, aWounder, 10
 
+
 # create a lemanRuss
 def createLemanRussDefence():
     return createTarget(3, 7, 7, 12), 8
@@ -56,6 +57,7 @@ def createCustodes():
 # create a guardsman
 def createGuardsman():
     return createTarget(4, 7, 7, 1), 3
+
 
 # this converts any of the various ways of saying true or false to a python bool
 def inputToBool(input):
@@ -105,15 +107,43 @@ def createWounder(strength, toughness, baseAp, baseDamage, rerolls='none', wound
 
 
 # a simple factory for creating a target object
-def createTarget(armourSave, invunerableSave, fnp, wounds, halveDamage=False, reduceDamageBy1=False):
+def createTarget(armourSave, invunerableSave, fnp, wounds, halveDamage=False, reduceDamageBy1=False, transHuman=False):
     output = Saver(armourSave, invunerableSave, fnp, wounds)
     output.myHalveDamage = halveDamage
     output.myReduceDamageBy1 = reduceDamageBy1
+    output.myTransHuman = transHuman
     return output
+
+
+def updateOffense(oldDict):
+    newDict = {"hitRoll": 7, "numAttacks": 0, "strength": 0, "baseAp": 0, "baseDamage": 0, "hitModifier": 0,
+               "hitReroll": 0, "woundModifier": 0, "woundReroll": 0, "autoSuccess": False, "autoWoundRoll": 7,
+               "autoWoundIsModified": False, "extraHitsRoll": 7, "extraHitsBonus": 0, "extraHitsIsModified": False,
+               "mortalWoundToHitRoll": 7, "mortalWoundToHitBonus": 0, "mortalWoundToHitRollIsModified": False,
+               "mortalWoundToWoundRoll": 7, "mortalWoundsToWoundBonus": 0, "mortalWoundToWoundRollIsModified": False,
+               "rendRoll": 7, "rendBonus": 0, "rendIsModified": False, "explodingDamageRoll": 7,
+               "explodingDamageIsModified": False, "explodingDamageBonus": 0}
+
+    for key, value in oldDict.items():
+        newDict[key] = value
+
+    return newDict
+
+
+def updateDefense(oldDict):
+    newDict = {"toughness": 0, "armourSave": 7, "invulnerableSave": 7, "fnp": 7, "woundCharacteristic": 0,
+               "hitModifier": 0, "woundModifier": 0, "reduceDamageByOne": False, "halveDamage": False,
+               "transHuman": False}
+
+    for key, value in oldDict.items():
+        newDict[key] = value
+
+    return newDict
 
 
 # this
 def processOffense(offensiveDict):
+    offensiveDict = updateOffense(offensiveDict)
     stats = {"lemanRuss": 0, "custodes": 0, "primarisMarine": 0, "imperialGuard": 0}
     # number of wounds to guardsman
     [lemanRussTarget, lemanRussToughness] = createLemanRussDefence()
@@ -124,7 +154,8 @@ def processOffense(offensiveDict):
     explodingHitsForHitter = [offensiveDict["extraHitsRoll"], offensiveDict["extraHitsBonus"]]
     hitter = createHitter(offensiveDict["hitRoll"], rerolls=offensiveDict["hitReroll"],
                           hitModifier=offensiveDict["hitModifier"], autoWoundRoll=offensiveDict["autoWoundRoll"],
-                          autoWoundIsModified=offensiveDict["autoWoundIsModified"], autoHit=offensiveDict["autoSuccess"],
+                          autoWoundIsModified=offensiveDict["autoWoundIsModified"],
+                          autoHit=offensiveDict["autoSuccess"],
                           mortalWound=mortalWoundForHitter,
                           mortalWoundIsModified=offensiveDict["mortalWoundToHitRollIsModified"],
                           explodingHits=explodingHitsForHitter,
@@ -168,12 +199,13 @@ def processOffense(offensiveDict):
 
 
 def processDefense(defensiveDict):
+    defensiveDict = updateDefense(defensiveDict)
     stats = {"bolters": 0, "lascannons": 0, "highYieldMissilePod": 0, "sniper": 0}
 
     hitter, wounder, numShots = createBolters()
     target = createTarget(defensiveDict["armourSave"], defensiveDict["invulnerableSave"], defensiveDict["fnp"],
-                          defensiveDict["woundCharacteristic"],
-                          halveDamage=defensiveDict["halveDamage"], reduceDamageBy1=defensiveDict["reduceDamageByOne"])
+                          defensiveDict["woundCharacteristic"], halveDamage=defensiveDict["halveDamage"],
+                          reduceDamageBy1=defensiveDict["reduceDamageByOne"], transHuman=defensiveDict["transHuman"])
     wounder.calculateSuccessRoll(wounder.myStrength, defensiveDict["toughness"])
     wounder.myDiceModifier -= defensiveDict["woundModifier"]
     hitter.myDiceModifier -= defensiveDict["hitModifier"]
@@ -223,6 +255,7 @@ def processDefense(defensiveDict):
 class DummyFile:
     def readline(self):
         return []
+
     def close(self):
         pass
 
@@ -310,12 +343,11 @@ for i in range(0, fileCounter):
     try:
         startTime2 = time.perf_counter()
         processProfile(rangeFileNames[i], meleeFileNames[i], defensiveFileNames[i], outputFileNames[i])
-        stopTime2 =  time.perf_counter()
+        stopTime2 = time.perf_counter()
         print("Processed data-set ", outputFileNames[i].split("_")[0], ", it took ", stopTime2 - startTime2)
 
     except IOError:
         print("Unable to process ", outputFileNames[i].split("_")[0], ", skipping this datasheet")
 stopTime = time.perf_counter()
 
-print("total time to process: ", stopTime-startTime)
-
+print("total time to process: ", stopTime - startTime)

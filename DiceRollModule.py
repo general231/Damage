@@ -269,9 +269,13 @@ class Saver():
         self.myDiceRoller = DiceRoller(6)
         self.myHalveDamage = False
         self.myReduceDamageBy1 = False
+        self.myTransHuman = False
 
     def __call__(self, aDamageObject):
         diceRoll = self.myDiceRoller()
+        if self.myTransHuman:
+            if diceRoll < 4:
+                return False
         if (diceRoll >= (
                 self.myArmourSave + aDamageObject.myAp) or diceRoll >= self.myInvulnerableSave) and diceRoll != 1 \
                 and aDamageObject.myType != 'mortal':
